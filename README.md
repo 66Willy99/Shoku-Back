@@ -1,9 +1,9 @@
-## Shoku-App Backend
+# Shoku-App Backend
 
-# Para Actovar el Backend
+## Para Activar el Backend
 
 .\venv\Scripts\activate
 
-# instalar las dependencias
+## instalar las dependencias
 
 pip install fastapi
