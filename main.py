@@ -73,3 +73,20 @@ async def register(email: str, password: str):
         return {"uid": user.uid, "email": user.email}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.put("/user/{userId}/edit-name")
+async def edit_user_name(userId: str, new_name: str):
+    try:
+        # Verificar si el usuario existe
+        ref = db.reference(f"usuarios/{userId}")
+        user_data = ref.get()
+        
+        if not user_data:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # Actualizar solo el campo nombre
+        ref.update({"nombre": new_name})
+        
+        return {"message": "Nombre actualizado exitosamente", "new_name": new_name}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
