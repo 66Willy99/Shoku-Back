@@ -10,3 +10,6 @@ __pycache__/
 
 # priv_key
 cred.json
+
+#Firebase config
+firebase-config.json
