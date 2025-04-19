@@ -90,3 +90,5 @@ async def edit_user_name(userId: str, new_name: str):
         return {"message": "Nombre actualizado exitosamente", "new_name": new_name}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+    #wena
