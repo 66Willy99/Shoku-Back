@@ -1,9 +1,9 @@
 # Shoku-App Backend
 
-# Create virtual environment
+# Crea el virtual environment
 python -m venv venv
 
-# Activate virtual environment
+# Activa el virtual environment
 # Windows:
 
 venv\Scripts\activate
