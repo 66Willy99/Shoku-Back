@@ -13,3 +13,4 @@ cred.json
 
 #Firebase config
 firebase-config.json
+config.py
