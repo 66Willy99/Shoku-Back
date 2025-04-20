@@ -1,7 +1,22 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from services.restaurant_service import RestaurantService
 
-router = APIRouter(prefix="/user/restaurants", tags=["restaurants"])
+router = APIRouter(prefix="/user/restaurant", tags=["restaurants"])
+
+@router.get("s/")
+async def obtener_restaurantes(
+    user_id: str,
+    service: RestaurantService = Depends(RestaurantService)
+):
+    return service.obtener_restaurantes(user_id)
+
+@router.get("/")
+async def obtener_restaurante(
+    user_id: str,
+    restaurante_id: str,
+    service: RestaurantService = Depends(RestaurantService)
+):
+    return service.obtener_restaurante(user_id, restaurante_id)
 
 @router.post("/")
 async def crear_restaurante(
@@ -12,23 +27,6 @@ async def crear_restaurante(
     service: RestaurantService = Depends(RestaurantService)
 ):
     return service.crear_restaurante(user_id, nombre, direccion, telefono)
-
-@router.get("/")
-async def obtener_restaurantes(
-    # user_id: str = Query(..., description="ID del usuario"),
-    service: RestaurantService = Depends(RestaurantService)
-):
-    return service.obtener_restaurantes()
-    
-
-router = APIRouter(prefix="/user/restaurant", tags=["restaurants"])
-@router.get("/")
-async def obtener_restaurante(
-    user_id: str,
-    restaurante_id: str,
-    service: RestaurantService = Depends(RestaurantService)
-):
-    return service.obtener_restaurante(user_id, restaurante_id)
 
 @router.put("/")
 async def actualizar_restaurante(
@@ -51,9 +49,7 @@ async def eliminar_restaurante(
 ):
     return service.eliminar_restaurante(user_id, restaurante_id)
 
-router = APIRouter(prefix="/user/restaurant/category", tags=["restaurants"])
-
-@router.post("/")
+@router.post("/category")
 async def crear_categoria(
     user_id:str, 
     restaurante_id:str, 
@@ -62,3 +58,22 @@ async def crear_categoria(
     service: RestaurantService = Depends(RestaurantService)
 ):
     return service.crear_categoria(user_id, restaurante_id, descripcion, nombre)
+
+@router.get("/categories")
+async def obtener_categorias(
+    user_id:str, 
+    restaurante_id:str, 
+    service: RestaurantService = Depends(RestaurantService)
+):
+    return service.obtener_categorias(user_id, restaurante_id)
+
+@router.put("/category")
+async def actualizar_categoria(
+    user_id:str, 
+    restaurante_id:str, 
+    categoria_id:str, 
+    nombre:str = None, 
+    descripcion:str = None,
+    service: RestaurantService = Depends(RestaurantService)
+):
+    return service.editar_categoria(user_id, restaurante_id, categoria_id, nombre, descripcion)

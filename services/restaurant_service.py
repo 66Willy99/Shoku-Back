@@ -86,3 +86,39 @@ class RestaurantService:
             return {"categoria_id": categoria_ref.key, **categoria_data}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
+    
+    def obtener_categorias(self, user_id:str, restaurante_id:str):
+        try:
+            categorias = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/categorias").get()
+            # categorias_nombre = [categoria['nombre'] for categoria in categorias.values()] # Esto es para obtener solo los nombres de las categorias, pero no se si es necesario
+            if not categorias:
+                raise HTTPException(status_code=404, detail="Categorias no encontradas")
+            return {"categorias": categorias}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    def editar_categoria(self, user_id:str, restaurante_id:str, categoria_id:str, descripcion:str=None, nombre:str=None):
+        try:
+            ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/categorias/{categoria_id}")
+            updates = {}
+            if descripcion: updates["descripcion"] = descripcion #valida si descripcion no es None y si no lo es, lo agrega al diccionario de updates
+            if nombre: updates["nombre"] = nombre                #(Tenia una forma de llamarse el if de esta manera pero no la recuerdo) xd
+            
+            if not updates:
+                raise HTTPException(status_code=400, detail="No hay datos para actualizar")
+            
+            ref.update(updates)
+            return {"message": "Categoria actualizada", "categoria_id": categoria_id, **updates}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        
+    def eliminar_categoria(self, user_id:str, restaurante_id:str, categoria_id:str):
+        try:
+            ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/categorias/{categoria_id}")
+            if not ref.get():
+                raise HTTPException(status_code=404, detail="Categoria no encontrada")
+            
+            ref.delete()
+            return {"message": "Categoria eliminada", "categoria_id": categoria_id}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))

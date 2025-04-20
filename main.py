@@ -12,5 +12,5 @@ app.include_router(users.router)
 app.include_router(restaurants.router)
 
 @app.get("/")
-def read_root():
+def main():
     return {"message": "Welcome to the API"}
