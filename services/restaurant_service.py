@@ -122,3 +122,94 @@ class RestaurantService:
             return {"message": "Categoria eliminada", "categoria_id": categoria_id}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
+
+    def crear_menu(
+        self,
+        user_id: str,
+        restaurante_id: str,
+        nombre: str,
+        descripcion: str,
+        platos: list,
+    ):
+        try:
+            menu_ref = db.reference(
+                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus"
+            ).push()
+            # Convertir lista a objeto { "platoid": true }
+            platos_dict = {pid: True for pid in platos}
+            menu_data = {
+                "nombre": nombre,
+                "descripcion": descripcion,
+                "platos": platos_dict,
+            }
+            menu_ref.set(menu_data)
+            return {"menu_id": menu_ref.key, **menu_data}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    def obtener_menus(self, user_id: str, restaurante_id: str):
+        try:
+            menus = db.reference(
+                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus"
+            ).get()
+            if not menus:
+                raise HTTPException(status_code=404, detail="Menus no encontrados")
+            return {"menus": menus}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    def obtener_menu(self, user_id: str, restaurante_id: str, menu_id: str):
+        try:
+            ref = db.reference(
+                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus/{menu_id}"
+            )
+            menu = ref.get()
+            if not menu:
+                raise HTTPException(status_code=404, detail="Menu no encontrado")
+            return {"menu_id": menu_id, **menu}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    def editar_menu(self, user_id: str, restaurante_id: str, menu_id: str, nombre: str = None, descripcion: str = None, platos: list = None,):
+        try:
+            # Referencia al menú específico
+            menu_ref = db.reference(
+                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus/{menu_id}"
+            )
+
+            # Obtener datos actuales
+            current_data = menu_ref.get() or {}
+
+            # Actualizar solo los campos proporcionados
+            update_data = {}
+            if nombre is not None:
+                update_data["nombre"] = nombre
+            if descripcion is not None:
+                update_data["descripcion"] = descripcion
+            if platos is not None:
+                update_data["platos"] = {
+                    pid: True for pid in platos
+                }  # Convertir lista a dict
+
+            # Aplicar actualización
+            menu_ref.update(update_data)
+
+            # Devolver datos actualizados
+            updated_data = {**current_data, **update_data}
+            return {"menu_id": menu_id, **updated_data}
+
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    def eliminar_menu(self, user_id: str, restaurante_id: str, menu_id: str):
+        try:
+            ref = db.reference(
+                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus/{menu_id}"
+            )
+            if not ref.get():
+                raise HTTPException(status_code=404, detail="Menu no encontrado")
+
+            ref.delete()
+            return {"message": "Menu eliminado", "menu_id": menu_id}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
