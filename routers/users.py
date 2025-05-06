@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from services.user_service import UserService
+from firebase_admin import auth
 
 
 router = APIRouter(prefix="/user", tags=["users"])
@@ -40,3 +41,15 @@ async def register(email: str, password: str, service: UserService = Depends(Use
 @router.put("/edit-name")
 async def edit_user_name(userId: str, new_name: str, service: UserService = Depends(UserService)):
     return service.edit_user_name(userId, new_name)
+
+@router.post("/reset-test-user")
+async def reset_test_user():
+    test_email = "prueba@prueba.com"
+    new_password = "prueba123"
+    
+    try:
+        user = auth.get_user_by_email(test_email)
+        auth.update_user(user.uid, password=new_password)
+        return {"message": "Contraseña actualizada"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
