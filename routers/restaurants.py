@@ -93,12 +93,11 @@ async def crear_menu(
     user_id: str,
     restaurante_id: str,
     nombre: str,
-    platos: List[str],  # Lista de IDs de platos Debe pasarse como ["id1", "id2", ...]
+    platos_ids: List[str] = None,  # Lista de IDs de platos Debe pasarse como ["id1", "id2", ...]
     descripcion: str = None,
     service: RestaurantService = Depends(RestaurantService)
 ):
-    return service.crear_menu(user_id=user_id, restaurante_id=restaurante_id, nombre=nombre,
-                            descripcion=descripcion, platos=platos)
+    return service.crear_menu(user_id=user_id, restaurante_id=restaurante_id, nombre=nombre, descripcion=descripcion, platos_ids=platos_ids)
 
 @router.get("/menus")
 async def obtener_menus(
