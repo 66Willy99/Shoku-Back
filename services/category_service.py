@@ -128,6 +128,7 @@ class CategoryService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error al actualizar categoria: {str(e)}"
             )
+    
     def eliminar_categoria(self, user_id:str, restaurante_id:str, categoria_id:str):
         try:
             categoria_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/categorias/{categoria_id}")
@@ -137,5 +138,4 @@ class CategoryService:
             categoria_ref.delete()
             return {"message": "Categoría eliminada exitosamente","categoria_id": categoria_id,"nombre": nombre_categoria}
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-            
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))        
