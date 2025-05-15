@@ -53,12 +53,7 @@ class UserService:
             response.raise_for_status()  # Lanza excepción para códigos 4xx/5xx
             response_data = response.json()
             
-            return {
-                "uid": uid,
-                "email": email,
-                "token": response_data["idToken"],
-                "refreshToken": response_data.get("refreshToken", "")
-            }
+            return response_data
             
         except requests.exceptions.RequestException as e:
             error_msg = "Error al comunicarse con Firebase"
@@ -88,15 +83,23 @@ class UserService:
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    def edit_user_name(self, userId: str, new_name: str):
+    def editUser(self, userId: str, newName: str = None, newEmail: str = None):
         try:
             ref = db.reference(f"usuarios/{userId}")
             user_data = ref.get()
             
             if not user_data:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
-            
-            ref.update({"nombre": new_name})
-            return {"message": "Nombre actualizado exitosamente", "new_name": new_name}
+            if newEmail is not None:
+                auth.update_user(userId, email=newEmail)
+                ref.update({"email": newEmail})
+            if newName is not None:
+                auth.update_user(userId, display_name=newName) 
+                ref.update({"nombre": newName})
+            return {"message": "Nombre actualizado exitosamente", 
+                    "Nuevo Nombre": newName, 
+                    "Nuevo Email": newEmail,
+                    "Antiguo Nombre": user_data.get("nombre"),
+                    "Antiguo Email": user_data.get("email")}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
