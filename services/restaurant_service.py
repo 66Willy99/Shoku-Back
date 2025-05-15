@@ -1,10 +1,30 @@
 from firebase_admin import db
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 class RestaurantService:
     def crear_restaurante(self, user_id: str, nombre: str, direccion: str, telefono: str):
         try:
-            restaurante_ref = db.reference(f"usuarios/{user_id}/restaurantes").push()
+            # Validación básica de campos
+            if not nombre or nombre.strip() == "":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El nombre del restaurante no puede estar vacío"
+                )
+            
+            # Obtener referencia a los restaurantes del usuario
+            restaurantes_ref = db.reference(f"usuarios/{user_id}/restaurantes")
+            restaurantes = restaurantes_ref.get() or {}  # Si no hay restaurantes, crea un dict vacío
+            
+            # Verificar si el nombre ya existe (case insensitive)
+            nombre_lower = nombre.lower()
+            for restaurante_id, restaurante_data in restaurantes.items():
+                if restaurante_data.get("nombre", "").lower() == nombre_lower:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Ya existe un restaurante con ese nombre"
+                    )
+            
+            # Crear estructura del nuevo restaurante
             restaurante_data = {
                 "nombre": nombre,
                 "direccion": direccion,
@@ -18,13 +38,24 @@ class RestaurantService:
                 "sillas": {},
                 "trabajadores": {}
             }
-            restaurante_ref.set(restaurante_data)
-
-            #restaurante_ref.key es una referencia al mismo restaurante con su key, o lo que es lo mismo un ID unico para el restaurante
-            return {"restaurante_id": restaurante_ref.key, **restaurante_data} 
             
+            # Guardar el nuevo restaurante
+            nuevo_restaurante_ref = restaurantes_ref.push()
+            nuevo_restaurante_ref.set(restaurante_data)
+            
+            return {
+                "message": "Restaurante creado exitosamente",
+                "restaurante_id": nuevo_restaurante_ref.key,
+                **restaurante_data
+            }
+            
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al crear restaurante: {str(e)}"
+            )
 
     def obtener_restaurantes(self, user_id: str):
         try:
@@ -46,32 +77,60 @@ class RestaurantService:
             raise HTTPException(status_code=400, detail=str(e))
 
     def actualizar_restaurante(
-        self, user_id: str, restaurante_id: str, nombre: str = None, 
-        direccion: str = None, telefono: str = None
+        self, 
+        user_id: str, 
+        restaurante_id: str, 
+        nombre: str = None,
+        direccion: str = None,
+        telefono: str = None
     ):
         try:
             ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}")
+            
+            # Validar que el restaurante existe
+            if not ref.get():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Restaurante no encontrado"
+                )
+            # Actualizar solo los campos proporcionados
             updates = {}
-            if nombre: updates["nombre"] = nombre
-            if direccion: updates["direccion"] = direccion
-            if telefono: updates["telefono"] = telefono
-            
+            if nombre is not None:
+                updates["nombre"] = nombre
+            if direccion is not None:
+                updates["direccion"] = direccion
+            if telefono is not None:
+                updates["telefono"] = telefono
             if not updates:
-                raise HTTPException(status_code=400, detail="No hay datos para actualizar")
-            
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No hay datos para actualizar"
+                )
+            # Aplicar actualización
             ref.update(updates)
-            return {"message": "Restaurante actualizado", "restaurante_id": restaurante_id, **updates}
+
+            return {
+                "message": "Restaurante actualizado exitosamente",
+                "restaurante_id": restaurante_id,
+                **updates
+            }
+            
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al actualizar restaurante: {str(e)}"
+            )
 
     def eliminar_restaurante(self, user_id: str, restaurante_id: str):
         try:
             ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}")
             if not ref.get():
                 raise HTTPException(status_code=404, detail="Restaurante no encontrado")
-            
+            nombre = ref.child("nombre").get()
             ref.delete()
-            return {"message": "Restaurante eliminado", "restaurante_id": restaurante_id}
+            return {"message": "Restaurante eliminado", "restaurante_id": restaurante_id, "nombre": nombre}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
     
@@ -123,24 +182,20 @@ class RestaurantService:
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    def crear_menu(
-        self,
-        user_id: str,
-        restaurante_id: str,
-        nombre: str,
-        descripcion: str,
-        platos: list,
-    ):
+    def crear_menu(self, user_id: str, restaurante_id: str, nombre: str, descripcion: str, platos_ids: list = None):
         try:
-            menu_ref = db.reference(
-                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus"
-            ).push()
-            # Convertir lista a objeto { "platoid": true }
-            platos_dict = {pid: True for pid in platos}
+            # Validar que los platos existan (si se proporcionan)
+            if platos_ids:
+                for plato_id in platos_ids:
+                    if not db.reference(f"platos/{plato_id}").get():
+                        raise HTTPException(status_code=400, detail=f"El plato {plato_id} no existe en la base de datos")
+            
+            # Crear menú solo con referencias
+            menu_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus").push()
             menu_data = {
                 "nombre": nombre,
                 "descripcion": descripcion,
-                "platos": platos_dict,
+                "platos": {pid: True for pid in platos_ids} if platos_ids else {}
             }
             menu_ref.set(menu_data)
             return {"menu_id": menu_ref.key, **menu_data}
@@ -160,13 +215,31 @@ class RestaurantService:
 
     def obtener_menu(self, user_id: str, restaurante_id: str, menu_id: str):
         try:
-            ref = db.reference(
-                f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus/{menu_id}"
-            )
-            menu = ref.get()
-            if not menu:
-                raise HTTPException(status_code=404, detail="Menu no encontrado")
-            return {"menu_id": menu_id, **menu}
+            # Obtener datos del menú
+            menu_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/menus/{menu_id}")
+            menu_data = menu_ref.get()
+            
+            if not menu_data:
+                raise HTTPException(status_code=404, detail="Menú no encontrado")
+            
+            # Obtener stock de cada plato
+            platos_con_stock = {}
+            for plato_id in menu_data.get("platos", {}):
+                plato_data = db.reference(f"platos/{plato_id}").get()
+                if plato_data:
+                    platos_con_stock[plato_id] = {
+                        "nombre": plato_data.get("nombre"),
+                        "stock": plato_data.get("stock", 0),
+                        "precio": plato_data.get("precio")
+                    }
+            
+            return {
+                "menu_id": menu_id,
+                "nombre": menu_data.get("nombre"),
+                "descripcion": menu_data.get("descripcion"),
+                "platos": platos_con_stock  # Datos consolidados
+            }
+            
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
