@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from firebase_config import initialize_firebase
-from routers import users, restaurants
+from routers import users, restaurants, categories
 from fastapi.middleware.cors import CORSMiddleware
 
 # Inicializar Firebase
@@ -18,6 +18,7 @@ app.add_middleware(
 # Incluir routers
 app.include_router(users.router)
 app.include_router(restaurants.router)
+app.include_router(categories.router)
 
 
 @app.get("/")

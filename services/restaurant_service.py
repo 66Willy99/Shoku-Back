@@ -17,7 +17,7 @@ class RestaurantService:
             
             # Verificar si el nombre ya existe (case insensitive)
             nombre_lower = nombre.lower()
-            for restaurante_id, restaurante_data in restaurantes.items():
+            for restaurante_data in restaurantes.items():
                 if restaurante_data.get("nombre", "").lower() == nombre_lower:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -61,7 +61,7 @@ class RestaurantService:
         try:
             restaurantes = db.reference(f"usuarios/{user_id}/restaurantes").get()
             if not restaurantes:
-                raise HTTPException(status_code=404, detail="Restaurante no encontrado")
+                raise HTTPException(status_code=404, detail="No hay Restaurantes creados")
             return restaurantes
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
