@@ -3,7 +3,7 @@ from services.category_service import CategoryService
 from typing import List
 
 
-router = APIRouter(prefix="/user/restaurant/category", tags=["categories"])
+router = APIRouter(prefix="/category", tags=["categories"])
 
 @router.post("/")
 async def crear_categoria(

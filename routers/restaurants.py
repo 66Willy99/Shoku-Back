@@ -3,7 +3,7 @@ from services.restaurant_service import RestaurantService
 from typing import List
 
 
-router = APIRouter(prefix="/user/restaurant", tags=["restaurants"])
+router = APIRouter(prefix="/restaurant", tags=["restaurants"])
 
 @router.get("s/")
 async def obtener_restaurantes(

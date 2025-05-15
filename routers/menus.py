@@ -3,7 +3,7 @@ from services.menu_service import MenuService
 from typing import List
 
 
-router = APIRouter(prefix="/user/restaurant/category/menu", tags=["menus"])
+router = APIRouter(prefix="/menu", tags=["menus"])
 
 @router.post("/")
 async def crear_menu(
