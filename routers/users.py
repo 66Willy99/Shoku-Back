@@ -38,9 +38,24 @@ async def login(credentials: dict = Body(...), service: UserService = Depends(Us
 async def register(email: str, password: str, service: UserService = Depends(UserService)):
     return service.register(email, password)
 
-@router.put("/edit-name")
-async def edit_user_name(userId: str, new_name: str, service: UserService = Depends(UserService)):
-    return service.edit_user_name(userId, new_name)
+@router.put("/edit")
+async def editUser(newData : dict = Body(...), service: UserService = Depends(UserService)):
+    try:
+        userId = newData.get("userId")
+        newName = newData.get("newName")
+        newEmail = newData.get("newEmail")
+
+        if newEmail == "":
+            newEmail = None
+        if newName == "":
+            newName = None
+            
+        return service.editUser(userId, newName, newEmail)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
 
 @router.post("/reset-test-user")
 async def reset_test_user():
