@@ -76,7 +76,7 @@ class MesaService:
         try:
             mesa = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{mesa_id}").get()
             if not mesa:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Menú no encontrado")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Mesa no encontrada")
             return mesa
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=str(e))
