@@ -123,3 +123,22 @@ class MesaService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error al actualizar menu: {str(e)}"
             )
+        
+    def eliminar_mesa(self, user_id:str, restaurante_id:str, mesa_id:str):
+        try:
+            ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{mesa_id}")
+            if not ref.get():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, 
+                    detail="Mesa no encontrada"
+                )
+            ref.delete()
+            return {
+                "message": "Mesa eliminada exitosamente",
+                "mesa_id": mesa_id
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al eliminar mesa: {str(e)}"
+            )
