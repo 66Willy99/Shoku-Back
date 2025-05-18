@@ -132,10 +132,12 @@ class MesaService:
                     status_code=status.HTTP_404_NOT_FOUND, 
                     detail="Mesa no encontrada"
                 )
+            mesa_data = ref.get()
             ref.delete()
             return {
                 "message": "Mesa eliminada exitosamente",
-                "mesa_id": mesa_id
+                "mesa_id": mesa_id,
+                "mesa_numero" : mesa_data.get("numero"),
             }
         except Exception as e:
             raise HTTPException(
