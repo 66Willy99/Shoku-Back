@@ -24,6 +24,7 @@ app.include_router(mesas.router)
 app.include_router(sillas.router)
 app.include_router(platos.router)
 app.include_router(pedidos.router)
+app.include_router(trabajador.router)
 
 
 @app.get("/")
