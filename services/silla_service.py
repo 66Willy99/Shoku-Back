@@ -1,6 +1,5 @@
 from firebase_admin import db
 from fastapi import HTTPException, status
-from mesa_service import MesaService
 
 class SillaService:
     def crear_silla(self, user_id:str, restaurante_id:str, mesa_id:str, numero: int):
@@ -20,7 +19,7 @@ class SillaService:
                     detail="Mesa no encontrada"
                 )
             # Verificar si la silla ya existe
-            silla_ref = mesa_ref.child("sillas")
+            silla_ref = restaurante_ref.child("sillas")
             silla = silla_ref.get() or {}
 
             # Verificar si ya existe una silla con el mismo número
