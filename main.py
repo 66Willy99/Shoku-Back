@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from firebase_config import initialize_firebase
-from routers import users, restaurants, categories, menus, mesas, sillas, platos, pedidos
+from routers import users, restaurants, categories, menus, mesas, sillas, platos, pedidos, trabajador
 from fastapi.middleware.cors import CORSMiddleware
 
 # Inicializar Firebase
