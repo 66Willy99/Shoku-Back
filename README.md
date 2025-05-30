@@ -14,8 +14,7 @@ source venv/bin/activate
 
 ## instalar las dependencias
 
-pip install fastapi[all]
-pip install firebase_admin
+pip install -r .\requirements.txt
 
 ## Correr el Servidor 
 
