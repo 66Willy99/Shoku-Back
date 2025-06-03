@@ -1,6 +1,7 @@
 from firebase_admin import db
 from fastapi import HTTPException, status
 import datetime
+from services.websocket_service import kitchen_websocket_service
 
 class PedidoService:
     def crear_pedido(self, user_id:str, restaurante_id:str, mesa_id:str, silla_id:str , platos: dict, fecha_actual: str = None):
@@ -60,7 +61,7 @@ class PedidoService:
             pedido_data = {}
             fecha_actual = fecha_actual or datetime.datetime.now()
             fecha_actual = fecha_actual.timestamp()
-            fecha_actual = fecha_actual * 1000
+            fecha_actual = fecha_actual * 1000  # Convertir a milisegundos
             # Crear la estructura del nuevo pedido
             pedido_data["mesa_id"] = mesa_id
             pedido_data["silla_id"] = silla_id
@@ -70,6 +71,24 @@ class PedidoService:
             pedidos_ref = restaurante_ref.child("pedidos")
             nuevo_pedido_ref = pedidos_ref.push()
             nuevo_pedido_ref.set(pedido_data)
+            # Notificar por WebSocket (si hay conexión activa)
+            import json
+            from services.websocket_service import kitchen_websocket_service
+            mensaje = json.dumps({
+                "evento": "nuevo_pedido",
+                "pedido_id": nuevo_pedido_ref.key,
+                "pedido": pedido_data
+            })
+            # Enviar mensaje solo si hay conexión activa
+            import asyncio
+            try:
+                asyncio.create_task(
+                    kitchen_websocket_service.send_message(restaurante_id, mensaje)
+                )
+            except RuntimeError:
+                # Si no hay loop, ignora (por ejemplo, si se llama fuera de contexto async)
+                pass
+
             return {
                 "message": "Pedido creado exitosamente",
                 "pedido_id": nuevo_pedido_ref.key
