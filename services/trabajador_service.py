@@ -1,8 +1,17 @@
 from firebase_admin import db
 from fastapi import HTTPException, status
+import bcrypt
 
 class TrabajadorService:
-    def crear_trabajador(self, user_id: str, restaurante_id: str, email: str, nombre: str, rol: str, user: str):
+    
+    def hash_password(plain_password: str) -> str:
+        hashed = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt())
+        return hashed.decode('utf-8')
+    
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    
+    def crear_trabajador(self, user_id: str, restaurante_id: str, email: str, nombre: str, rol: str, user: str, password_hash: str):
         try:
             # Validación básica de campos
             if not nombre or nombre.strip() == "":
@@ -29,6 +38,19 @@ class TrabajadorService:
                     detail="El usuario del trabajador no puede estar vacío"
                 )
             
+            if len(password_hash) < 6:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La contraseña del trabajador debe tener al menos 6 caracteres"
+                )
+            if not password_hash or password_hash.strip() == "":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La contraseña del trabajador no puede estar vacía"
+                )
+            
+            password_hash = TrabajadorService.hash_password(password_hash)
+                        
             # Obtener referencia al restaurante
             restaurante_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}")
             if not restaurante_ref.get():
@@ -58,6 +80,9 @@ class TrabajadorService:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Ya existe un trabajador con ese usuario"
                     )
+                
+            
+            
             
             # Crear estructura del nuevo trabajador
             trabajador_data = {
@@ -65,6 +90,7 @@ class TrabajadorService:
                 "nombre": nombre,
                 "rol": rol,
                 "user": user,
+                "password_hash": password_hash
             }
             
             # Guardar el nuevo trabajador
@@ -206,3 +232,25 @@ class TrabajadorService:
         
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+    
+    def login_trabajador(self, restaurante_id: str, user: str, password: str):
+        usuarios_ref = db.reference("usuarios")
+        usuarios = usuarios_ref.get() or {}
+        for user_id, usuario in usuarios.items():
+            restaurantes = usuario.get("restaurantes", {})
+            if restaurante_id in restaurantes:
+                trabajadores = restaurantes[restaurante_id].get("trabajadores", {})
+                for trabajador_id, trabajador in trabajadores.items():
+                    if trabajador.get("user") == user:
+                        hashed_password = trabajador.get("password_hash")
+                        if hashed_password and TrabajadorService.verify_password(password, hashed_password):
+                            return {
+                                "message": "Login exitoso",
+                                "trabajador_id": trabajador_id,
+                                "nombre": trabajador.get("nombre"),
+                                "rol": trabajador.get("rol"),
+                                "email": trabajador.get("email"),
+                                "user_id": user_id,
+                                "restaurante_id": restaurante_id
+                            }
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
