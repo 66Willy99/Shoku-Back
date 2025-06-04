@@ -4,6 +4,7 @@ venv/
 # Python cache
 __pycache__/
 *.py[cod]
+*/__pycache__
 
 # Environment variables
 .env
@@ -13,3 +14,7 @@ cred.json
 
 #Firebase config
 firebase-config.json
+config.py
+
+#pruebas de api
+pruebas.http
