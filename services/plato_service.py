@@ -78,7 +78,7 @@ class PlatoService:
 
     def obtener_plato(self, user_id:str, restaurante_id:str, plato_id:str):
         try:
-            plato = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{plato_id}").get()
+            plato = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/platos/{plato_id}").get()
             if not plato:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Plato no encontrado")
             return plato

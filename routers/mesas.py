@@ -18,17 +18,17 @@ async def crear_mesa(
 
 @router.get("/all")
 async def obtener_mesas(
-    user_id:str= Body(...), 
-    restaurante_id:str = Body(...),
+    user_id:str= Query(...), 
+    restaurante_id:str = Query(...),
     service: MesaService = Depends(MesaService)
 ):
     return service.obtener_mesas(user_id, restaurante_id)
 
 @router.get("/")
 async def obtener_mesa(
-    user_id:str= Body(...), 
-    restaurante_id:str = Body(...),
-    mesa_id:str = Body(...),
+    user_id:str= Query(...), 
+    restaurante_id:str = Query(...),
+    mesa_id:str = Query(...),
     service: MesaService = Depends(MesaService)
 ):
     return service.obtener_mesa(user_id, restaurante_id, mesa_id)

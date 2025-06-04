@@ -16,20 +16,29 @@ async def crear_silla(
 
 @router.get("/all")
 async def obtener_sillas(
-    user_id:str= Body(...), 
-    restaurante_id:str = Body(...),
+    user_id:str= Query(...), 
+    restaurante_id:str = Query(...),
     service: SillaService = Depends(SillaService)
 ):
     return service.obtener_sillas(user_id, restaurante_id)
 
 @router.get("/")
 async def obtener_silla(
-    user_id:str= Body(...), 
-    restaurante_id:str = Body(...),
-    silla_id:str = Body(...),
+    user_id:str= Query(...), 
+    restaurante_id:str = Query(...),
+    silla_id:str = Query(...),
     service: SillaService = Depends(SillaService)
 ):
     return service.obtener_silla(user_id, restaurante_id, silla_id)
+
+@router.get("/silla_mesa")
+async def obtener_sillas_mesa(
+    user_id:str= Query(...), 
+    restaurante_id:str = Query(...),
+    mesa_id:str = Query(...),
+    service: SillaService = Depends(SillaService)
+):
+    return service.obtener_sillas_mesa(user_id, restaurante_id, mesa_id)
 
 @router.put("/")
 async def actualizar_silla(
