@@ -1,5 +1,7 @@
-from firebase_admin import db
 from fastapi import HTTPException, status
+from firebase_admin import db
+from grpc import Status
+from services.silla_service import SillaService
 
 class MesaService:
     def crear_mesa(self, user_id:str, restaurante_id:str, capacidad:int, estado:str, numero:int):
@@ -124,7 +126,7 @@ class MesaService:
                 detail=f"Error al actualizar menu: {str(e)}"
             )
         
-    def eliminar_mesa(self, user_id:str, restaurante_id:str, mesa_id:str):
+    def eliminar_mesa(self, user_id: str, restaurante_id: str, mesa_id: str):
         try:
             ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{mesa_id}")
             if not ref.get():
@@ -133,11 +135,25 @@ class MesaService:
                     detail="Mesa no encontrada"
                 )
             mesa_data = ref.get()
+            
+
+            # Obtener todas las sillas del restaurante
+            sillas_response = SillaService.obtener_sillas(self, user_id, restaurante_id)
+            sillas = sillas_response.get("sillas", {})
+
+            # Filtrar las sillas que pertenecen a la mesa que se va a eliminar
+            sillas_a_eliminar = [silla_id for silla_id, silla in sillas.items() if silla.get("mesa_id") == mesa_id]
+
+            # Eliminar cada silla asociada a la mesa
+            for silla_id in sillas_a_eliminar:
+                SillaService.eliminar_silla(self, user_id, restaurante_id, silla_id)
+
             ref.delete()
+
             return {
                 "message": "Mesa eliminada exitosamente",
                 "mesa_id": mesa_id,
-                "mesa_numero" : mesa_data.get("numero"),
+                "mesa_numero": mesa_data.get("numero"),
             }
         except Exception as e:
             raise HTTPException(

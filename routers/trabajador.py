@@ -11,9 +11,12 @@ async def crear_trabajador(
     nombre: str = Body(...),
     rol: str = Body(...),
     user: str = Body(...),
+    password_hash: str = Body(...),
     service: TrabajadorService = Depends(TrabajadorService)
 ):
-    return service.crear_trabajador(user_id, restaurante_id, email, nombre, rol, user)
+    # Para crear el hash:
+    
+    return service.crear_trabajador(user_id, restaurante_id, email, nombre, rol, user, password_hash)
 
 @router.get("es/")
 async def obtener_trabajadores(
@@ -53,3 +56,12 @@ async def eliminar_trabajador(
     service: TrabajadorService = Depends(TrabajadorService)
 ):
     return service.eliminar_trabajador(user_id, restaurante_id, trabajador_id)
+
+@router.post("/login")
+def login_trabajador(
+    restaurante_id: str = Body(...),
+    user: str = Body(...),
+    password: str = Body(...),
+    service: TrabajadorService = Depends(TrabajadorService)
+):
+    return service.login_trabajador(restaurante_id, user, password)
