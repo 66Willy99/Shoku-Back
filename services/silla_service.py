@@ -90,6 +90,32 @@ class SillaService:
                 detail=f"Error interno: {str(e)}"
             )
     
+    def obtener_sillas_mesa(self, user_id:str, restaurante_id:str, mesa_id:str):
+        try:
+            # Verificar si el restaurante existe
+            rest_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}")
+            sillas_ref = rest_ref.child("sillas")
+            sillas = sillas_ref.get() or {}
+            print(sillas)
+            if not sillas_ref:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Restaurante no encontrado"
+                )
+            # Filtrar las sillas por mesa_id
+            sillas = sillas_ref.get() or {}
+            sillas_mesa = {k: v for k, v in sillas.items() if v.get("mesa_id") == mesa_id}
+            return {
+                "message": "Sillas de la mesa obtenidas exitosamente",
+                "sillas": sillas_mesa
+            }
+        
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error interno: {str(e)}"
+            )
+    
     def actualizar_silla(self, user_id:str, restaurante_id:str, silla_id:str, numero:int=None, mesa_id:str=None):
         try:
             # Verificar si el restaurante existe

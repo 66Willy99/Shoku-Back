@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
 from services.pedido_service import PedidoService
+
 from typing import List
 
 router = APIRouter(prefix="/pedido", tags=["pedidos"])
@@ -17,8 +18,8 @@ async def crear_pedido(
 
 @router.get("s/")
 async def obtener_pedidos(
-    user_id: str = Body(...),
-    restaurante_id: str = Body(...),
+    user_id: str = Query(...),
+    restaurante_id: str = Query(...),
     service: PedidoService = Depends(PedidoService)
 ):
     return service.obtener_pedidos(user_id, restaurante_id)
