@@ -95,9 +95,11 @@ class MesaService:
             if not mesa_data:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mesa no encontrada")
             if capacidad is not None:
-                if capacidad == 0:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La capacidad de la mesa no puede ser cero")
-                ref.update({"capacidad": capacidad})
+                if capacidad <= 0 or capacidad == mesa_data.get("capacidad"):
+                    capacidad = mesa_data.get("capacidad")
+                    ref.update({"capacidad": capacidad})
+                else:
+                    ref.update({"capacidad": capacidad})
             if estado is not None:
                 estado = estado.strip()
                 estado = estado.lower()
@@ -105,9 +107,11 @@ class MesaService:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El estado de la mesa no puede estar vacío")
                 ref.update({"estado": estado})
             if numero is not None:
-                if numero == 0:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El numero de la mesa no puede ser cero")
-                ref.update({"numero": numero})
+                if numero <= 0 or numero == mesa_data.get("numero"):
+                    numero = mesa_data.get("numero")
+                    ref.update({"numero": numero})
+                else:
+                    ref.update({"numero": numero})
 
             return {
                 "message": "Menú actualizado exitosamente",
