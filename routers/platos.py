@@ -28,9 +28,9 @@ async def obtener_platos(
 
 @router.get("/")
 async def obtener_plato(
-    user_id:str= Body(...), 
-    restaurante_id:str = Body(...),
-    plato_id:str = Body(...),
+    user_id:str= Query(...), 
+    restaurante_id:str = Query(...),
+    plato_id:str = Query(...),
     service: PlatoService = Depends(PlatoService)
 ):
     return service.obtener_plato(user_id, restaurante_id, plato_id)

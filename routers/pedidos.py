@@ -19,8 +19,8 @@ async def crear_pedido(
 
 @router.get("s/")
 async def obtener_pedidos(
-    user_id: str = Body(...),
-    restaurante_id: str = Body(...),
+    user_id: str = Query(...),
+    restaurante_id: str = Query(...),
     service: PedidoService = Depends(PedidoService)
 ):
     return service.obtener_pedidos(user_id, restaurante_id)
