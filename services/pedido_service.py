@@ -2,9 +2,12 @@ from firebase_admin import db
 from fastapi import HTTPException, status
 import datetime
 from services.websocket_service import kitchen_websocket_service
+from services.mesa_service import MesaService
+from services.silla_service import SillaService
+from services.plato_service import PlatoService
 
 class PedidoService:
-    def crear_pedido(self, user_id:str, restaurante_id:str, mesa_id:str, silla_id:str , platos: dict, fecha_actual: str = None):
+    def crear_pedido(self, user_id:str, restaurante_id:str, mesa_id:str, silla_id:str , platos: dict, detalle: str= None, fecha_actual: str = None):
         try:
             # Validación básica de campos
             if not user_id or user_id.strip() == "":
@@ -58,7 +61,22 @@ class PedidoService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Silla no encontrada"
                 )
+            
             pedido_data = {}
+            
+            # Verificar si el detalle es válido
+            if detalle is None:
+                pedido_data["detalle"] = ""  # Siempre presente, aunque vacío
+            elif detalle.strip() == "":
+                pedido_data["detalle"] = ""  # Siempre presente, aunque vacío
+            elif len(detalle) < 5 or len(detalle) > 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El detalle del pedido no es válido, debe tener entre 5 y 200 caracteres"
+                    )
+            else:
+                pedido_data["detalle"] = detalle
+
             fecha_actual = fecha_actual or datetime.datetime.now()
             fecha_actual = fecha_actual.timestamp()
             fecha_actual = fecha_actual * 1000  # Convertir a milisegundos
@@ -67,6 +85,8 @@ class PedidoService:
             pedido_data["silla_id"] = silla_id
             pedido_data["estados"] = {"confirmado": fecha_actual, "estado_actual": "confirmado"}
             pedido_data["platos"]= platos
+            pedido_data["detalle"] = detalle
+            
             # Guardar el nuevo pedido
             pedidos_ref = restaurante_ref.child("pedidos")
             nuevo_pedido_ref = pedidos_ref.push()
@@ -206,16 +226,8 @@ class PedidoService:
                     detail="El ID del pedido no puede estar vacío"
                 )
             
-            # Obtener referencia al restaurante
-            restaurante_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}")
-            if not restaurante_ref.get():
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Restaurante no encontrado"
-                )
-            
             # Obtener el pedido específico
-            pedido = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/pedido/{pedido_id}").get()
+            pedido = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/pedidos/{pedido_id}").get()
             if not pedido:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Pedido no encontrado")
             return {
@@ -301,3 +313,46 @@ class PedidoService:
         
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=str(e))
+    
+    def pedido_detalle(self, user_id: str, restaurante_id: str, pedido_id: str):
+        import datetime
+
+        pedido = self.obtener_pedido(user_id, restaurante_id, pedido_id)
+        pedido = pedido.get("pedido", {})
+        platos = pedido.get("platos", {})
+
+        # Obtener todos los platos del restaurante de una sola vez
+        platos_restaurante = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/platos").get() or {}
+
+        platosNombreCantidad = {}
+        for plato_id, plato_info in platos.items():
+            cantidad = plato_info.get("cantidad", 0)
+            plato_data = platos_restaurante.get(plato_id, {})
+            nombre = plato_data.get("nombre", f"Plato {plato_id}")
+            platosNombreCantidad[nombre] = cantidad
+
+        mesaNro = MesaService().obtener_mesa(user_id, restaurante_id, pedido.get("mesa_id"))
+        mesaNro = mesaNro.get("numero", {})
+        sillaNro = SillaService().obtener_silla(user_id, restaurante_id, pedido.get("silla_id"))
+        sillaNro = sillaNro.get("silla", {}).get("numero", {})
+
+        estado_actual = pedido.get("estados", {}).get("estado_actual", "")
+        fecha_estado_actual = datetime.datetime.fromtimestamp(
+            pedido.get("estados", {}).get(estado_actual, 0) / 1000
+        ).strftime('%Y-%m-%d %H:%M:%S')
+        detalle = pedido.get("detalle", "")
+
+        pedidoDetalle = {
+            "platos": platosNombreCantidad,
+            "mesa": mesaNro,
+            "silla": sillaNro,
+            "estado_actual": estado_actual,
+            "fecha": fecha_estado_actual,
+            "detalle": detalle,
+        }
+
+        return {
+            "message": "detalle del pedido obtenido exitosamente",
+            "pedido_detalle": pedidoDetalle,
+            "pedido": pedido
+        }

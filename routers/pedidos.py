@@ -12,9 +12,10 @@ async def crear_pedido(
     mesa_id:str = Body(...),
     silla_id:str = Body(...),
     platos: dict = Body(...),
+    detalle: str = Body(...),
     service: PedidoService = Depends(PedidoService)
 ):
-    return service.crear_pedido(user_id, restaurante_id, mesa_id, silla_id, platos)
+    return service.crear_pedido(user_id, restaurante_id, mesa_id, silla_id, platos, detalle)
 
 @router.get("s/")
 async def obtener_pedidos(
@@ -26,12 +27,21 @@ async def obtener_pedidos(
 
 @router.get("/")
 async def obtener_pedido(
-    pedido_id: str = Body(...),
-    user_id: str = Body(...),
-    restaurante_id: str = Body(...),
+    user_id: str = Query(...),
+    restaurante_id: str = Query(...),
+    pedido_id: str = Query(...),
     service: PedidoService = Depends(PedidoService)
 ):
-    return service.obtener_pedido(pedido_id, user_id, restaurante_id)
+    return service.obtener_pedido(user_id, restaurante_id, pedido_id)
+
+@router.get("/detalle")
+async def pedido_detalle(
+    user_id: str = Query(...),
+    restaurante_id: str = Query(...),
+    pedido_id: str = Query(...),
+    service: PedidoService = Depends(PedidoService)
+):
+    return service.pedido_detalle(user_id, restaurante_id, pedido_id) 
 
 @router.get("s/mesa/")
 async def obtener_pedidos_mesa(
