@@ -322,7 +322,7 @@ class PedidoService:
         platos = pedido.get("platos", {})
 
         # Obtener todos los platos del restaurante de una sola vez
-        platos_restaurante = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/platos").get() or {}
+        platos_restaurante = PlatoService.obtener_platos(self, user_id, restaurante_id).get("platos") or {}
 
         platosNombreCantidad = {}
         for plato_id, plato_info in platos.items():
