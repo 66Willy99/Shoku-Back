@@ -35,7 +35,7 @@ async def login(credentials: dict = Body(...), service: UserService = Depends(Us
         )
 
 @router.post("/register")
-async def register(email: str, password: str, service: UserService = Depends(UserService)):
+async def register(email: str= Body(...), password: str = Body(...), service: UserService = Depends(UserService)):
     return service.register(email, password)
 
 @router.put("/edit")
