@@ -24,10 +24,10 @@ class SillaService:
 
             # Verificar si ya existe una silla con el mismo número
             for silla_data in silla.values():
-                if silla_data.get("numero") == numero:
+                if silla_data.get("numero") == numero and silla_data.get("mesa_id") == mesa_id:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
-                        detail="La silla ya existe"
+                        detail="El nro de silla ya existe en esta mesa"
                     )
 
             # Crear la estructura de la nueva silla
