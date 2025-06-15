@@ -20,17 +20,17 @@ async def crear_trabajador(
 
 @router.get("es/")
 async def obtener_trabajadores(
-    user_id: str = Body(...), 
-    restaurante_id: str = Body(...),
+    user_id: str = Query(...), 
+    restaurante_id: str = Query(...),
     service: TrabajadorService = Depends(TrabajadorService)
 ):
     return service.obtener_trabajadores(user_id, restaurante_id)
 
 @router.get("/")
 async def obtener_trabajador(
-    user_id: str = Body(...), 
-    restaurante_id: str = Body(...),
-    trabajador_id: str = Body(...),
+    user_id: str = Query(...), 
+    restaurante_id: str = Query(...),
+    trabajador_id: str = Query(...),
     service: TrabajadorService = Depends(TrabajadorService)
 ):
     return service.obtener_trabajador(user_id, restaurante_id, trabajador_id)
