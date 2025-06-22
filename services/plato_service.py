@@ -91,7 +91,7 @@ class PlatoService:
         try:
             ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/platos/{plato_id}")
             plato_data = ref.get()
-            if not plato_data.get():
+            if not plato_data:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, 
                     detail="Plato no encontrado"
