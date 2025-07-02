@@ -6,7 +6,7 @@ import time
 
 router = APIRouter(prefix="", tags=["Webpay"])
 
-YOUR_IP = "192.168.18.57"
+YOUR_IP = "192.168.18.157"
 PORT = 8000
 FRONTEND_PORT = 8081
 
@@ -148,7 +148,7 @@ async def confirmar_pago(
                         break
 
             if restaurante_id and mesa_id and order_id:
-                base_path = f"/restaurantes/{restaurante_id}/mesas/{mesa_id}/pedidos/{order_id}"
+                base_path = f"/usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{mesa_id}/pedidos/{order_id}"
                 db.reference(f"{base_path}/estado_actual").set("pagado")
                 db.reference(f"{base_path}/estados/estado_actual").set("pagado")
                 db.reference(f"{base_path}/estados/pagado").set(int(time.time() * 1000))
