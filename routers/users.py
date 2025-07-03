@@ -68,3 +68,101 @@ async def reset_test_user():
         return {"message": "Contraseña actualizada"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/suscripcion")
+async def actualizar_nivel_suscripcion(
+    datos_suscripcion: dict = Body(...), 
+    service: UserService = Depends(UserService)
+):
+    """
+    Actualiza el nivel de suscripción del usuario.
+    
+    Body parameters:
+    - userId: ID del usuario
+    - nivel: Nuevo nivel de suscripción (0: gratuito, 1: básico, 2: premium, 3: enterprise)
+    """
+    try:
+        userId = datos_suscripcion.get("userId")
+        nivel = datos_suscripcion.get("nivel")
+        
+        if not userId:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El userId es requerido"
+            )
+            
+        if nivel is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El nivel de suscripción es requerido"
+            )
+            
+        # Validar que nivel sea un entero
+        try:
+            nivel = int(nivel)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El nivel debe ser un número entero"
+            )
+            
+        return service.actualizar_nivel_suscripcion(userId, nivel)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
+@router.get("/niveles-suscripcion")
+async def obtener_niveles_suscripcion():
+    """
+    Obtiene información sobre los niveles de suscripción disponibles.
+    """
+    niveles = {
+        0: {
+            "nombre": "Gratuito",
+            "descripcion": "Funcionalidades básicas",
+            "max_restaurantes": 1,
+            "max_mesas": 5,
+            "reportes_avanzados": False
+        },
+        1: {
+            "nombre": "Básico",
+            "descripcion": "Plan básico con más funciones",
+            "max_restaurantes": 2,
+            "max_mesas": 15,
+            "reportes_avanzados": True
+        },
+        2: {
+            "nombre": "Premium",
+            "descripcion": "Plan premium con funciones avanzadas",
+            "max_restaurantes": 5,
+            "max_mesas": 50,
+            "reportes_avanzados": True
+        },
+        3: {
+            "nombre": "Enterprise",
+            "descripcion": "Plan empresarial sin límites",
+            "max_restaurantes": -1,  # -1 significa ilimitado
+            "max_mesas": -1,
+            "reportes_avanzados": True
+        }
+    }
+    
+    return {
+        "message": "Niveles de suscripción obtenidos exitosamente",
+        "niveles": niveles
+    }
+
+@router.get("/perfil")
+async def obtener_perfil_usuario(
+    userId: str, 
+    service: UserService = Depends(UserService)
+):
+    """
+    Obtiene el perfil completo del usuario con información de suscripción.
+    """
+    return service.obtener_perfil_usuario(userId)
