@@ -3,12 +3,10 @@ from fastapi.responses import HTMLResponse
 from transbank.webpay.webpay_plus.transaction import Transaction
 from firebase_admin import db
 import time
+from config import BACKEND_IP, BACKEND_PORT, FRONTEND_PORT, FRONTEND_IP
 
 router = APIRouter(prefix="", tags=["Webpay"])
 
-YOUR_IP = "192.168.1.87"
-PORT = 8000
-FRONTEND_PORT = 8081
 
 transaction = Transaction()
 transaction.configure_for_testing()
@@ -50,7 +48,7 @@ async def crear_transaccion(
         print(f"✅ Pago creado: {pago_id}, pedidos: {pedidos_list}, total: {total}")
 
         return_url = (
-            f"http://{YOUR_IP}:{PORT}/web-return"
+            f"http://{BACKEND_IP}:{BACKEND_PORT}/web-return"
             f"?mesa_id={mesaId}"
             f"&silla_id={sillaId}"
             f"&user_id={userId}"
@@ -189,7 +187,7 @@ async def confirmar_pago(
         print(f"❌ Error en commit o Firebase: {e}")
 
     app_link = "myapp://payment-complete"
-    web_link = f"http://{YOUR_IP}:{FRONTEND_PORT}/estado"
+    web_link = f"http://{FRONTEND_IP}:{FRONTEND_PORT}/estado"
 
     for k, v in {
         "mesa_id": mesa_id,
