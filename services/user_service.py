@@ -2,6 +2,8 @@ from firebase_admin import auth, db
 from fastapi import HTTPException, status
 from config import FIREBASE_CONFIG
 import requests
+import time
+import time
 
 class UserService:
     def obtener_usuarios(self):
@@ -103,3 +105,106 @@ class UserService:
                     "Antiguo Email": user_data.get("email")}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
+
+    def actualizar_nivel_suscripcion(self, userId: str, nuevo_nivel: int):
+        """
+        Actualiza el nivel de suscripción del usuario.
+        
+        Args:
+            userId: ID del usuario
+            nuevo_nivel: Nuevo nivel de suscripción (0: gratuito, 1: basico, 2: premium)
+        """
+        try:
+            # Validar que el nivel sea válido
+            if nuevo_nivel < 0 or nuevo_nivel > 5:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El nivel de suscripción debe estar entre 0 y 5"
+                )
+            
+            ref = db.reference(f"usuarios/{userId}")
+            user_data = ref.get()
+            
+            if not user_data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Usuario no encontrado"
+                )
+            
+            nivel_anterior = user_data.get("nivel", 0)
+            
+            # Actualizar el nivel en Firebase
+            ref.update({
+                "nivel": nuevo_nivel,
+                "fecha_actualizacion_nivel": int(time.time() * 1000)
+            })
+            
+            return {
+                "message": "Nivel de suscripción actualizado exitosamente",
+                "userId": userId,
+                "nivel_anterior": nivel_anterior,
+                "nivel_actual": nuevo_nivel,
+                "fecha_actualizacion": int(time.time() * 1000)
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al actualizar nivel de suscripción: {str(e)}"
+            )
+
+    def obtener_perfil_usuario(self, userId: str):
+        """
+        Obtiene el perfil completo del usuario con información de suscripción.
+        """
+        try:
+            ref = db.reference(f"usuarios/{userId}")
+            user_data = ref.get()
+            
+            if not user_data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Usuario no encontrado"
+                )
+            
+            # Obtener información del nivel de suscripción
+            nivel_actual = user_data.get("nivel", 0)
+            
+            niveles_info = {
+                0: {"nombre": "Gratuito", "max_restaurantes": 1, "max_mesas": 2, "max_sillas": 10},
+                1: {"nombre": "Básico", "max_restaurantes": 2, "max_mesas": 15, "max_sillas": 30},
+                2: {"nombre": "Premium", "max_restaurantes": 5, "max_mesas": 50, "max_sillas": 100}
+            }
+            
+            info_nivel = niveles_info.get(nivel_actual, niveles_info[0])
+            
+            # Contar restaurantes actuales
+            restaurantes_actuales = len(user_data.get("restaurantes", {}))
+            
+            return {
+                "userId": userId,
+                "email": user_data.get("email", ""),
+                "nombre": user_data.get("nombre", ""),
+                "nivel": nivel_actual,
+                "info_suscripcion": {
+                    "nombre_plan": info_nivel["nombre"],
+                    "restaurantes_actuales": restaurantes_actuales,
+                    "max_restaurantes": info_nivel["max_restaurantes"],
+                    "max_mesas": info_nivel["max_mesas"],
+                    "puede_crear_restaurante": (
+                        info_nivel["max_restaurantes"] == -1 or 
+                        restaurantes_actuales < info_nivel["max_restaurantes"]
+                    )
+                },
+                "fecha_actualizacion_nivel": user_data.get("fecha_actualizacion_nivel")
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al obtener perfil de usuario: {str(e)}"
+            )

@@ -6,7 +6,7 @@ import time
 
 router = APIRouter(prefix="", tags=["Webpay"])
 
-YOUR_IP = "192.168.18.57"
+YOUR_IP = "192.168.1.87"
 PORT = 8000
 FRONTEND_PORT = 8081
 
@@ -17,15 +17,37 @@ transaction.configure_for_testing()
 @router.get("/pay", response_class=HTMLResponse)
 async def crear_transaccion(
     total: int = Query(...),
-    orderId: str = Query(...),
+    pedidos: str = Query(...),  # JSON string con array de pedido IDs
     mesaId: str = Query(...),
     sillaId: str = Query(...),
     userId: str = Query(...),
     restauranteId: str = Query(...),
 ):
     try:
-        assert isinstance(orderId, str) and orderId.strip() != ""
-        print(f"✅ Recibido orderId: {orderId}, total: {total}")
+        import json
+        
+        # Parsear los pedidos
+        pedidos_list = json.loads(pedidos)
+        assert isinstance(pedidos_list, list) and len(pedidos_list) > 0
+        
+        # Crear el registro de pago en Firebase usando tu estructura
+        restaurante_ref = db.reference(f"usuarios/{userId}/restaurantes/{restauranteId}")
+        pagos_ref = restaurante_ref.child("pagos")
+        nuevo_pago_ref = pagos_ref.push()
+        pago_id = nuevo_pago_ref.key
+        
+        pago_data = {
+            "pedidos": pedidos_list,
+            "tipo": "webpay",
+            "total": total,
+            "estado": "pendiente",
+            "fecha_creacion": int(time.time() * 1000),
+            "mesa_id": mesaId,
+            "silla_id": sillaId
+        }
+        
+        nuevo_pago_ref.set(pago_data)
+        print(f"✅ Pago creado: {pago_id}, pedidos: {pedidos_list}, total: {total}")
 
         return_url = (
             f"http://{YOUR_IP}:{PORT}/web-return"
@@ -33,11 +55,12 @@ async def crear_transaccion(
             f"&silla_id={sillaId}"
             f"&user_id={userId}"
             f"&restaurante_id={restauranteId}"
+            f"&pago_id={pago_id}"
         )
 
         response = transaction.create(
-            buy_order=orderId[:26],
-            session_id=f"ORD-{orderId}",
+            buy_order=pago_id[:26],  # Usar pago_id como buy_order
+            session_id=f"PAY-{pago_id}",  # Usar pago_id en session_id
             amount=total,
             return_url=return_url,
         )
@@ -112,49 +135,55 @@ async def confirmar_pago(
     silla_id: str = Query(None),
     user_id: str = Query(None),
     restaurante_id: str = Query(None),
+    pago_id: str = Query(None),
 ):
     token = request.query_params.get("token_ws")
     if not token:
         return HTMLResponse("<p>Token no proporcionado</p>", status_code=400)
 
     approved = False
-    order_id = None
-
+    
     try:
         response = transaction.commit(token)
         approved = response["response_code"] == 0
         print(f"📥 Token recibido: {token}")
         print(f"💳 Resultado commit: {response}")
 
-        if approved:
+        if approved and pago_id:
             session_id = response["session_id"]
-            order_id = session_id.replace("ORD-", "")
-            print(f"📦 Order ID extraído: {order_id}")
+            extracted_pago_id = session_id.replace("PAY-", "")
+            print(f"📦 Pago ID extraído: {extracted_pago_id}")
 
-            if not restaurante_id or not mesa_id:
-                restaurantes_ref = db.reference("/restaurantes").get()
-                for rest_id, rest_data in restaurantes_ref.items():
-                    if not isinstance(rest_data, dict):
-                        continue
-                    mesas = rest_data.get("mesas", {})
-                    for mesa_id_candidate, mesa_data in mesas.items():
-                        pedidos = mesa_data.get("pedidos", {})
-                        if order_id in pedidos:
-                            restaurante_id = rest_id
-                            mesa_id = mesa_id_candidate
-                            print(f"🔍 Pedido encontrado en Firebase: restaurante_id={restaurante_id}, mesa_id={mesa_id}")
-                            break
-                    if restaurante_id and mesa_id:
-                        break
-
-            if restaurante_id and mesa_id and order_id:
-                base_path = f"/restaurantes/{restaurante_id}/mesas/{mesa_id}/pedidos/{order_id}"
-                db.reference(f"{base_path}/estado_actual").set("pagado")
-                db.reference(f"{base_path}/estados/estado_actual").set("pagado")
-                db.reference(f"{base_path}/estados/pagado").set(int(time.time() * 1000))
-                print(f"✅ Pedido {order_id} marcado como pagado.")
+            # Actualizar el registro de pago usando tu estructura
+            restaurante_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}")
+            pago_ref = restaurante_ref.child("pagos").child(extracted_pago_id)
+            pago_data = pago_ref.get()
+            
+            if pago_data:
+                # Actualizar estado del pago
+                pago_ref.update({
+                    "estado": "pagado",
+                    "fecha_pago": int(time.time() * 1000),
+                    "transaccion_id": response.get("authorization_code", ""),
+                    "response_code": response["response_code"]
+                })
+                
+                # Actualizar todos los pedidos asociados
+                pedidos_list = pago_data.get("pedidos", [])
+                pedidos_ref = restaurante_ref.child("pedidos")
+                
+                for pedido_id in pedidos_list:
+                    pedido_ref = pedidos_ref.child(pedido_id)
+                    estados_ref = pedido_ref.child("estados")
+                    estados_ref.update({
+                        "estado_actual": "pagado",
+                        "pagado": int(time.time() * 1000)
+                    })
+                    pedido_ref.update({"pago_id": extracted_pago_id})
+                
+                print(f"✅ Pago {extracted_pago_id} y pedidos {pedidos_list} marcados como pagados.")
             else:
-                print("❌ No se encontró restaurante_id o mesa_id para el pedido.")
+                print("❌ No se encontró el registro de pago.")
 
     except Exception as e:
         print(f"❌ Error en commit o Firebase: {e}")
@@ -167,6 +196,7 @@ async def confirmar_pago(
         "silla_id": silla_id,
         "user_id": user_id,
         "restaurante_id": restaurante_id,
+        "pago_id": pago_id,
     }.items():
         if v:
             app_link += f"{'?' if '?' not in app_link else '&'}{k}={v}"

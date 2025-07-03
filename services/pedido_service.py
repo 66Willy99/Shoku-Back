@@ -288,6 +288,21 @@ class PedidoService:
                 estado_actual = "preparacion"
             elif estado_actual == 2:
                 estado_actual = "terminado"
+                import json
+                from services.websocket_service import kitchen_websocket_service
+                mensaje = json.dumps({
+                    "evento": "pedido_terminado",
+                    "pedido_id": pedido_id
+                })
+                # Enviar mensaje solo si hay conexión activa
+                import asyncio
+                try:
+                    asyncio.create_task(
+                        kitchen_websocket_service.send_message(restaurante_id, mensaje)
+                    )
+                except RuntimeError:
+                    # Si no hay loop, ignora (por ejemplo, si se llama fuera de contexto async)
+                    pass
             elif estado_actual == 3:
                 estado_actual = "entregado"
             elif estado_actual == 4:

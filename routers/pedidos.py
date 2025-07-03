@@ -45,9 +45,9 @@ async def pedido_detalle(
 
 @router.get("s/mesa/")
 async def obtener_pedidos_mesa(
-    user_id: str = Body(...),
-    restaurante_id: str = Body(...),
-    mesa_id: str = Body(...),
+    user_id: str = Query(...),
+    restaurante_id: str = Query(...),
+    mesa_id: str = Query(...),
     service: PedidoService = Depends(PedidoService)
 ):
     return service.obtener_pedidos_mesa(user_id, restaurante_id, mesa_id)
