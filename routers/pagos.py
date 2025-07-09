@@ -209,8 +209,7 @@ async def confirmar_pago(
                     mesa_data = mesa_ref.get()
                     if mesa_data:
                         mesa_ref.update({
-                            "estado": "pagado",
-                            "fecha_pago": int(time.time() * 1000)
+                            "estado": "pagado"
                         })
                         print(f"✅ Mesa {mesa_data.get('numero', mesa_id)} marcada como PAGADO (todos los pedidos pagados).")
                     else:
