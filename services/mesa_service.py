@@ -1,3 +1,4 @@
+import datetime
 from fastapi import HTTPException, status
 from firebase_admin import db
 from grpc import Status
@@ -159,4 +160,44 @@ class MesaService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error al eliminar mesa: {str(e)}"
+            )
+        
+    def llamar_garzon(self, user_id: str, restaurante_id: str, mesa_id: str):
+        try:
+            ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{mesa_id}")
+            mesa_data = ref.get()
+            if not mesa_data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, 
+                    detail="Mesa no encontrada"
+                )
+            mesa_numero = mesa_data.get("numero", "N/A") if mesa_data else "N/A"
+            # Preparar mensaje WebSocket con información completa
+            import json
+            from services.websocket_service import kitchen_websocket_service
+            mensaje = json.dumps({
+                "evento": "solicitud_cliente",
+                "mesa_id": mesa_id,
+                "mesa_numero": mesa_numero,
+                "timestamp": datetime.datetime.now().timestamp() * 1000,
+            })
+            
+            # Enviar mensaje WebSocket solo si hay conexión activa
+            import asyncio
+            try:
+                asyncio.create_task(
+                    kitchen_websocket_service.send_message(restaurante_id, mensaje)
+                )
+            except RuntimeError:
+                # Si no hay loop, ignora (por ejemplo, si se llama fuera de contexto async)
+                pass
+            return {
+                "message": "Garzón llamado exitosamente",
+                "mesa_id": mesa_id,
+                "mesa_numero": mesa_data.get("numero")
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al llamar al garzón: {str(e)}"
             )

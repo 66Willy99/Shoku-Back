@@ -4,6 +4,7 @@ from transbank.webpay.webpay_plus.transaction import Transaction
 from firebase_admin import db
 import time
 from config import BACKEND_IP, BACKEND_PORT, FRONTEND_PORT, FRONTEND_IP
+from services.pedido_service import PedidoService
 
 router = APIRouter(prefix="", tags=["Webpay"])
 
@@ -178,6 +179,44 @@ async def confirmar_pago(
                         "pagado": int(time.time() * 1000)
                     })
                     pedido_ref.update({"pago_id": extracted_pago_id})
+                
+                # Verificar si todos los pedidos de la mesa están pagados usando PedidoService
+                pedido_service = PedidoService()
+                try:
+                    pedidos_mesa_response = pedido_service.obtener_pedidos_mesa(user_id, restaurante_id, mesa_id)
+                    pedidos_mesa = pedidos_mesa_response.get("pedidos", {})
+                except Exception as e:
+                    print(f"⚠️ Error obteniendo pedidos de la mesa: {e}")
+                    pedidos_mesa = {}
+                
+                # Verificar si todos los pedidos de la mesa están pagados
+                todos_pagados = True
+                if pedidos_mesa:
+                    for pedido_id, pedido in pedidos_mesa.items():
+                        estado_actual = pedido.get("estados", {}).get("estado_actual")
+                        if estado_actual != "pagado":
+                            todos_pagados = False
+                            break
+                    
+                    print(f"📊 Mesa {mesa_id}: {len(pedidos_mesa)} pedidos encontrados, todos pagados: {todos_pagados}")
+                else:
+                    print(f"⚠️ No se encontraron pedidos para la mesa {mesa_id}")
+                    todos_pagados = False
+                
+                # Solo actualizar estado de mesa si TODOS los pedidos están pagados
+                if todos_pagados:
+                    mesa_ref = restaurante_ref.child("mesas").child(mesa_id)
+                    mesa_data = mesa_ref.get()
+                    if mesa_data:
+                        mesa_ref.update({
+                            "estado": "pagado",
+                            "fecha_pago": int(time.time() * 1000)
+                        })
+                        print(f"✅ Mesa {mesa_data.get('numero', mesa_id)} marcada como PAGADO (todos los pedidos pagados).")
+                    else:
+                        print(f"⚠️ No se encontró la mesa {mesa_id} para actualizar su estado.")
+                else:
+                    print(f"⏸️ Mesa {mesa_id} NO se marca como pagado porque aún hay pedidos pendientes.")
                 
                 print(f"✅ Pago {extracted_pago_id} y pedidos {pedidos_list} marcados como pagados.")
             else:

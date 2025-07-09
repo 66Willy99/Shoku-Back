@@ -288,13 +288,37 @@ class PedidoService:
                 estado_actual = "preparacion"
             elif estado_actual == 2:
                 estado_actual = "terminado"
+                
+                # Obtener información adicional para la notificación
+                mesa_id = pedido.get("mesa_id")
+                silla_id = pedido.get("silla_id")
+                
+                # Obtener número de mesa
+                mesa_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/mesas/{mesa_id}")
+                mesa_data = mesa_ref.get()
+                mesa_numero = mesa_data.get("numero", "N/A") if mesa_data else "N/A"
+                
+                # Obtener número de silla
+                silla_ref = db.reference(f"usuarios/{user_id}/restaurantes/{restaurante_id}/sillas/{silla_id}")
+                silla_data = silla_ref.get()
+                silla_numero = silla_data.get("numero", "N/A") if silla_data else "N/A"
+                
+                # Preparar mensaje WebSocket con información completa
                 import json
                 from services.websocket_service import kitchen_websocket_service
                 mensaje = json.dumps({
                     "evento": "pedido_terminado",
-                    "pedido_id": pedido_id
+                    "pedido_id": pedido_id,
+                    "mesa_id": mesa_id,
+                    "mesa_numero": mesa_numero,
+                    "silla_id": silla_id,
+                    "silla_numero": silla_numero,
+                    "timestamp": datetime.datetime.now().timestamp() * 1000,
+                    "platos": pedido.get("platos", {}),
+                    "detalle": pedido.get("detalle", "")
                 })
-                # Enviar mensaje solo si hay conexión activa
+                
+                # Enviar mensaje WebSocket solo si hay conexión activa
                 import asyncio
                 try:
                     asyncio.create_task(

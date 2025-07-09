@@ -53,3 +53,12 @@ async def eliminar_mesa(
     service: MesaService = Depends(MesaService)
 ):
     return service.eliminar_mesa(user_id, restaurante_id, mesa_id)
+
+@router.post("/llamar-garzon")
+async def llamar_garzon(
+    user_id: str = Body(...),
+    restaurante_id: str = Body(...),
+    mesa_id: str = Body(...),
+    service: MesaService = Depends(MesaService)
+):
+    return service.llamar_garzon(user_id, restaurante_id, mesa_id)
